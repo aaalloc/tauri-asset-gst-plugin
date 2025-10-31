@@ -1,0 +1,21 @@
+[package]
+name = "tauri-asset-gst-plugin"
+version = "0.1.0"
+edition = "2021"
+description = "GStreamer plugin (Rust) — asset:// URI proxy to filesrc"
+license = "LGPL-2.1-or-later"
+# Use cdylib so GStreamer can load it as a plugin
+crate-type = ["cdylib"]
+
+[dependencies]
+# glib = "0.21.4"
+# gstreamer = "0.24"
+# gstreamer-base = "0.24"
+glib = "0.21.4"
+gst = { package = "gstreamer", version = "0.24.2", features = ["v1_16"] }
+
+
+# Optional, for logging convenience
+log = "0.4"
+
+[build-dependencies]
