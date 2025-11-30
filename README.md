@@ -10,7 +10,7 @@ and then get the absolute path of
 ./target/release
 ```
 
-And use it when using your tauri project like
+And use it when compiling your tauri project like for example 
 
 ```
 GST_PLUGIN_PATH=<folder-path-where-libgsttauriasset.so> npm run tauri dev
