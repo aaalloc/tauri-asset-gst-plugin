@@ -1,5 +1,6 @@
 use gst::glib;
 use gst::prelude::*;
+use gstreamer_base::gst;
 
 mod imp;
 
@@ -10,10 +11,10 @@ glib::wrapper! {
 }
 
 pub fn register(plugin: &gst::Plugin) -> Result<(), glib::BoolError> {
-    gst::Element::register(
-        Some(plugin),
-        "assettauri",
-        gst::Rank::PRIMARY,
-        TauriAsset::static_type(),
-    )
+  gst::Element::register(
+    Some(plugin),
+    "tauriasset",
+    gst::Rank::PRIMARY,
+    TauriAsset::static_type(),
+  )
 }

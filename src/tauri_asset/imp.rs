@@ -3,6 +3,7 @@ use gst::prelude::{ElementExt, GhostPadExt, GstBinExt, PadExt};
 use gst::subclass::prelude::{BinImpl, ElementImpl, ObjectImpl, URIHandlerImpl};
 use gst::subclass::prelude::{GstObjectImpl, ObjectSubclass};
 use gst::{glib, GhostPad, PadDirection};
+use gstreamer_base::gst;
 
 const ASSET_URI_SCHEME: &str = "asset";
 
@@ -43,7 +44,6 @@ impl URIHandlerImpl for TauriAsset {
 
     fn set_uri(&self, uri: &str) -> Result<(), glib::Error> {
         // uri is like: asset://path/to/asset or asset://localhost/path/to/asset
-
         let sep = format!("{}://", ASSET_URI_SCHEME);
         let mut split = uri.split(sep.as_str());
         let location = split.nth(1).ok_or_else(|| {
@@ -52,6 +52,17 @@ impl URIHandlerImpl for TauriAsset {
 
         // directly having full path after asset:// or having localhost
         let location = location.strip_prefix("localhost").unwrap_or(location);
+
+        // Uri could be percent-encoded
+        let location = percent_encoding::percent_decode_str(location)
+            .decode_utf8()
+            .map_err(|_| {
+                glib::Error::new(
+                    gst::URIError::BadUri,
+                    "Could not decode percent-encoded URI",
+                )
+            })?
+            .to_string();
 
         // now location is like: /path/to/asset
         let internal_src = gst::ElementFactory::make("filesrc")
@@ -87,7 +98,6 @@ impl URIHandlerImpl for TauriAsset {
 
         let element = self.obj();
         element.add_pad(&ghostpad).expect("Failed to add ghost pad");
-        println!("Set URI to location: {}", location);
         Ok(())
     }
 }
