@@ -38,14 +38,22 @@ impl ObjectImpl for TauriAsset {
             .build()
             .expect("Failed to create filesrc");
 
-        element.add(&filesrc).unwrap();
+        element
+            .add(&filesrc)
+            .expect("Failed to add filesrc to element");
 
-        let srcpad = filesrc.static_pad("src").unwrap();
-        let ghostpad = GhostPad::with_target(&srcpad).unwrap();
-        element.add_pad(&ghostpad).unwrap();
-        ghostpad.set_active(true).unwrap();
+        let srcpad = filesrc
+            .static_pad("src")
+            .expect("Failed to get src pad from filesrc");
+        let ghostpad = GhostPad::with_target(&srcpad).expect("Failed to create ghost pad");
+        element
+            .add_pad(&ghostpad)
+            .expect("Failed to add ghost pad to element");
+        ghostpad
+            .set_active(true)
+            .expect("Failed to activate ghost pad");
 
-        self.filesrc.set(filesrc).unwrap();
+        self.filesrc.set(filesrc).expect("Failed to set filesrc");
     }
 }
 impl BinImpl for TauriAsset {}
@@ -86,7 +94,7 @@ impl URIHandlerImpl for TauriAsset {
 
         self.filesrc
             .get()
-            .unwrap()
+            .expect("filesrc not initialized")
             .set_property("location", &location);
 
         Ok(())
