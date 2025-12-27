@@ -1,15 +1,17 @@
 use gst::glib::subclass::types::ObjectSubclassExt;
-use gst::prelude::{ElementExt, GhostPadExt, GstBinExt, PadExt};
+use gst::prelude::{ElementExt, GstBinExt, PadExt};
 use gst::subclass::prelude::{BinImpl, ElementImpl, ObjectImpl, URIHandlerImpl};
 use gst::subclass::prelude::{GstObjectImpl, ObjectSubclass};
-use gst::{glib, GhostPad, PadDirection};
+use gst::{glib, GhostPad};
+use gstreamer::glib::object::ObjectExt;
+use gstreamer::glib::subclass::object::ObjectImplExt;
 use gstreamer_base::gst;
 
 const ASSET_URI_SCHEME: &str = "asset";
 
 #[derive(Default)]
 pub struct TauriAsset {
-    // uri: Option<String>,
+    pub filesrc: std::sync::OnceLock<gst::Element>,
 }
 
 impl TauriAsset {
@@ -27,7 +29,25 @@ impl ObjectSubclass for TauriAsset {
 }
 
 impl GstObjectImpl for TauriAsset {}
-impl ObjectImpl for TauriAsset {}
+impl ObjectImpl for TauriAsset {
+    fn constructed(&self) {
+        self.parent_constructed();
+
+        let element = self.obj();
+        let filesrc = gst::ElementFactory::make("filesrc")
+            .build()
+            .expect("Failed to create filesrc");
+
+        element.add(&filesrc).unwrap();
+
+        let srcpad = filesrc.static_pad("src").unwrap();
+        let ghostpad = GhostPad::with_target(&srcpad).unwrap();
+        element.add_pad(&ghostpad).unwrap();
+        ghostpad.set_active(true).unwrap();
+
+        self.filesrc.set(filesrc).unwrap();
+    }
+}
 impl BinImpl for TauriAsset {}
 impl ElementImpl for TauriAsset {}
 
@@ -64,40 +84,11 @@ impl URIHandlerImpl for TauriAsset {
             })?
             .to_string();
 
-        // now location is like: /path/to/asset
-        let internal_src = gst::ElementFactory::make("filesrc")
-            .name("filesrc")
-            .property("location", location)
-            .build()
-            .ok();
+        self.filesrc
+            .get()
+            .unwrap()
+            .set_property("location", &location);
 
-        let element = self.obj();
-        element
-            .add(internal_src.as_ref().unwrap())
-            .expect("Failed to add internal source");
-
-        let srcpad = internal_src
-            .as_ref()
-            .and_then(|src| src.static_pad("src"))
-            .ok_or_else(|| {
-                glib::Error::new(
-                    gst::URIError::BadUri,
-                    "Could not get src pad from internal source",
-                )
-            })?;
-
-        let ghostpad = GhostPad::new(PadDirection::Src);
-        ghostpad
-            .set_target(Some(&srcpad))
-            .ok()
-            .ok_or_else(|| glib::Error::new(gst::URIError::BadUri, "Could not create ghost pad"))?;
-
-        ghostpad.set_active(true).ok().ok_or_else(|| {
-            glib::Error::new(gst::URIError::BadUri, "Could not activate ghost pad")
-        })?;
-
-        let element = self.obj();
-        element.add_pad(&ghostpad).expect("Failed to add ghost pad");
         Ok(())
     }
 }
